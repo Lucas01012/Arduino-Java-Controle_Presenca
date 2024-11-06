@@ -2,73 +2,76 @@ package model;
 
 import dao.ArduinoDAO;
 import dao.GraficoDAO;
+import view.InterfacePrincipal;
+import org.jdatepicker.JDatePicker;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.CategoryLabelPositions;
-import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.*;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
-import java.util.List;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 public class GraficoTela extends JFrame {
-    private JComboBox<String> tipoGraficoComboBox;
-    private JButton gerarGraficoButton;
     private GraficoDAO graficoDAO;
     private ArduinoDAO arduinoDAO;
+    private java.sql.Date dataSelecionada;
 
-    public GraficoTela() {
-        arduinoDAO = new ArduinoDAO();
-        graficoDAO = new GraficoDAO(arduinoDAO);
+    public GraficoTela(String tipoGraficoSelecionado, java.sql.Date dataSelecionada) {
+        this.arduinoDAO = new ArduinoDAO();
+        this.graficoDAO = new GraficoDAO(arduinoDAO);
+        this.dataSelecionada = dataSelecionada;
 
-        setTitle("Gráfico de Comandos");
+        setTitle("Gráfico de Detecções");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         setLayout(new BorderLayout());
 
-        JPanel filterPanel = new JPanel();
-        tipoGraficoComboBox = new JComboBox<>(new String[]{"Total do dia", "Últimos 7 dias"});
-        gerarGraficoButton = new JButton("Gerar Gráfico");
-
-        filterPanel.add(new JLabel("Tipo de Gráfico: "));
-        filterPanel.add(tipoGraficoComboBox);
-        filterPanel.add(gerarGraficoButton);
-
-        add(filterPanel, BorderLayout.NORTH);
-
-        gerarGraficoButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                gerarGrafico(tipoGraficoComboBox.getSelectedItem().toString());
-            }
-        });
-
+        gerarGrafico(tipoGraficoSelecionado);
     }
 
     private void gerarGrafico(String tipoGrafico) {
+        DefaultCategoryDataset dataset = null;
+        String titulo = "";
+        String eixoX = "";
+        String eixoY = "";
 
-        if ("Total do dia".equals(tipoGrafico)) {
+        if ("Dia atual".equals(tipoGrafico)) {
             String dataSelecionada = "2024-11-03";
-            DefaultCategoryDataset dataset = graficoDAO.getTotalComandosPorMinuto(dataSelecionada);
-            criarGrafico(dataset, "Total de detecções", "Hora/Minuto", "Quantidade");
-        }
-        if ("Últimos 7 dias".equals(tipoGrafico)) {
-            String diaSelecionado = "Monday";
-            DefaultCategoryDataset dataset = graficoDAO.getComandosUltimos7Dias();
-            criarGrafico(dataset, "Total de detecções no últimos 7  dias", "Dia", "Quantidade");
+            dataset = graficoDAO.getTotalComandosPorMinuto(dataSelecionada);
+            titulo = "Total de detecções";
+            eixoX = "Hora/Minuto";
+            eixoY = "Detecções";
+        } else if ("Semana atual".equals(tipoGrafico)) {
+            dataset = graficoDAO.getComandosUltimos7Dias();
+            titulo = "Total de detecções nos últimos 7 dias";
+            eixoY = "Detecções";
+        } else if ("Mês a mês".equals(tipoGrafico)) {
+            dataset = graficoDAO.getTotalComandosMes();
+            titulo = "Total de detecções nos últimos 12 meses";
+            eixoX = "Mês";
+            eixoY = "Detecções";
+        } else if ("Por dia específico".equals(tipoGrafico) && dataSelecionada != null) {
+            dataset = graficoDAO.getComandosPorDiaEspecifico(dataSelecionada);
+            titulo = "Total de detecções em " + dataSelecionada.toString();
+            eixoX = "Hora/Minuto";
+            eixoY = "Detecções";
         }
 
+        criarGrafico(dataset, titulo, eixoX, eixoY);
     }
+
 
     private void criarGrafico(DefaultCategoryDataset dataset, String titulo, String eixoX, String eixoY) {
         JFreeChart chart = ChartFactory.createBarChart(
@@ -82,26 +85,34 @@ public class GraficoTela extends JFrame {
                 false
         );
 
-        CategoryAxis xAxis = chart.getCategoryPlot().getDomainAxis();
-        xAxis.setCategoryLabelPositions(CategoryLabelPositions.STANDARD); // Mantém as posições padrão
+        chart.setBackgroundPaint(Color.WHITE);
+
+        CategoryPlot plot = chart.getCategoryPlot();
+        CategoryAxis xAxis = plot.getDomainAxis();
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setRangeGridlinePaint(Color.BLACK);
+        plot.setRangeGridlinesVisible(true);
+        xAxis.setCategoryLabelPositions(CategoryLabelPositions.STANDARD);
         xAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 10));
 
-        // Configurações do eixo Y
-        NumberAxis yAxis = (NumberAxis) chart.getCategoryPlot().getRangeAxis();
+        xAxis.setCategoryMargin(0.1);
+
+        BarRenderer renderer = new BarRenderer();
+        renderer.setSeriesPaint(0, new Color(54, 162, 235)); // Azul
+        renderer.setMaximumBarWidth(0.10);
+
+        plot.setRenderer(renderer);
+
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
         yAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        yAxis.setLabelFont(new Font("SansSerif", Font.PLAIN, 12));
+        yAxis.setAutoRangeIncludesZero(true);
 
-        // Ajuste para o tipo de gráfico
-        String tipoGrafico = (String) tipoGraficoComboBox.getSelectedItem();
-        if ("Total do dia".equals(tipoGrafico)) {
-            xAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 10));
-        } else if ("Últimos 7 dias".equals(tipoGrafico)) {
-            xAxis.setTickLabelFont(new Font("SansSerif", Font.BOLD, 12));
-        }
-
-        // Criação do painel do gráfico
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(800, 500));
+        chartPanel.setPreferredSize(new Dimension(1500, 600));
+
+
         setContentPane(chartPanel);
         revalidate();
     }
-}
+    }

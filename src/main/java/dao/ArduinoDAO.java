@@ -10,10 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ArduinoDAO {
     public void insertCommand(String command) {
@@ -48,6 +45,7 @@ public class ArduinoDAO {
         }
     }
 
+
     public List<Registro> getAllRecords() {
         List<Registro> registros = new ArrayList<>();
 
@@ -68,14 +66,61 @@ public class ArduinoDAO {
         return registros;
     }
 
+    public List<ComandoPorDia> getComandosMes() {
+        List<ComandoPorDia> registros = new ArrayList<>();
+        String sql = "SELECT MONTH(data_hora) AS mes, COUNT(*) AS total " +
+                "FROM comandos " +
+                "WHERE data_hora >= NOW() - INTERVAL 12 MONTH " +
+                "GROUP BY mes " +
+                "ORDER BY mes";
+
+        try (Connection connection = ConnectionFactory.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                int mes = resultSet.getInt("mes");
+                int total = resultSet.getInt("total");
+                String nomeMes = getNomeMes(mes);
+                registros.add(new ComandoPorDia(nomeMes, total));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Erro SQL: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return registros;
+    }
+
+
+    private String getNomeMes(int mesAno){
+        switch (mesAno){
+            case 1: return "Janeiro";
+            case 2: return "Fevereiro";
+            case 3: return "Março";
+            case 4: return "Abril";
+            case 5: return "Maio";
+            case 6: return "Junho";
+            case 7: return "Julho";
+            case 8: return "Agosto";
+            case 9: return "Setembro";
+            case 10: return "Outubro";
+            case 11: return "Novembro";
+            case 12: return "Dezembro";
+            default: return "";
+        }
+    }
+
 
     public List<ComandoPorDia> getComandosUltimos7Dias() {
         List<ComandoPorDia> registros = new ArrayList<>();
         String sql = "SELECT DAYOFWEEK(data_hora) AS dia_da_semana, COUNT(*) AS total " +
                 "FROM comandos " +
-                "WHERE data_hora >= NOW() - INTERVAL 7 DAY " +
-                "GROUP BY dia_da_semana " +
-                "ORDER BY dia_da_semana";
+                "WHERE WEEK(data_hora) = WEEK(CURDATE()) " +
+                "AND YEAR(data_hora) = YEAR(CURDATE()) " +
+                "GROUP BY DAYOFWEEK(data_hora) " +
+                "ORDER BY DAYOFWEEK(data_hora)";
 
         try (Connection connection = ConnectionFactory.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql);
@@ -86,7 +131,6 @@ public class ArduinoDAO {
                 int total = resultSet.getInt("total");
 
                 String nomeDia = getNomeDia(diaSemana);
-
                 registros.add(new ComandoPorDia(nomeDia, total));
             }
         } catch (SQLException e) {
@@ -95,7 +139,6 @@ public class ArduinoDAO {
 
         return registros;
     }
-
     private String getNomeDia(int diaSemana) {
         switch (diaSemana) {
             case 1: return "Domingo";
@@ -108,6 +151,32 @@ public class ArduinoDAO {
             default: return "";
         }
     }
+
+    public List<Registro> getComandosDiaEspecifico(java.sql.Date date) {
+        List<Registro> registros = new ArrayList<>();
+        String sql = "SELECT id , comando, data_hora FROM comandos WHERE DATE(data_hora) = ?";
+
+        try (Connection connection = ConnectionFactory.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setDate(1, date);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    int id = resultSet.getInt("id");
+                    String comando = resultSet.getString("comando");
+                    String dataHora = resultSet.getString("data_hora");
+
+                    registros.add(new Registro(id, comando, dataHora));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return registros;
+    }
+
 
     public Map<String, Integer> getComandosPorMinuto() {
         Map<String, Integer> comandosPorMinuto = new HashMap<>();

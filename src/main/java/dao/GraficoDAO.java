@@ -27,32 +27,70 @@ public class GraficoDAO {
         Collections.sort(sortedKeys);
 
         for (String key : sortedKeys) {
-            dataset.addValue(comandosPorMinuto.get(key), "Comandos", key);
+            dataset.addValue(comandosPorMinuto.get(key), "Total Detecções", key);
         }
 
         return dataset;
     }
 
+    public Map<String, Integer> getTotalComandosPorDia() {
+        Map<String, Integer> totalPorDia = new HashMap<>();
 
+        List<Registro> registros = arduinoDAO.getAllRecords();
+
+        for (Registro registro : registros) {
+            String dia = registro.getDataHora().split(" ")[0];
+            totalPorDia.put(dia, totalPorDia.getOrDefault(dia, 0) + 1);
+        }
+
+        return totalPorDia;
+    }
+
+    public DefaultCategoryDataset getTotalComandosMes() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        List<ComandoPorDia> comandosPorMes = arduinoDAO.getComandosMes();
+
+        int totalComandos = 0;
+
+        for (ComandoPorDia comando : comandosPorMes) {
+            int totalMes = comando.getTotal();
+            dataset.addValue(totalMes, "Total Detecções", comando.getDiaDaSemana());
+
+            totalComandos += totalMes;
+        }
+
+        System.out.println("Total acumulado de detecções: " + totalComandos);
+
+        return dataset;
+    }
     public DefaultCategoryDataset getComandosUltimos7Dias() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         List<ComandoPorDia> comandoPorDias = arduinoDAO.getComandosUltimos7Dias();
 
-        Map<String, Integer> totalPorDia = new LinkedHashMap<>();
-        totalPorDia.put("Domingo", 0);
-        totalPorDia.put("Segunda", 0);
-        totalPorDia.put("Terça", 0);
-        totalPorDia.put("Quarta", 0);
-        totalPorDia.put("Quinta", 0);
-        totalPorDia.put("Sexta", 0);
-        totalPorDia.put("Sábado", 0);
-
         for (ComandoPorDia comandoPorDia : comandoPorDias) {
-            totalPorDia.put(comandoPorDia.getDiaDaSemana(), comandoPorDia.getTotal());
+            dataset.addValue(comandoPorDia.getTotal(), "Total Detecções", comandoPorDia.getDiaDaSemana());
         }
 
-        for (Map.Entry<String, Integer> entry : totalPorDia.entrySet()) {
-            dataset.addValue(entry.getValue(), "Comandos", entry.getKey());
+        return dataset;
+    }
+    public DefaultCategoryDataset getComandosPorDiaEspecifico(java.sql.Date date) {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        List<Registro> registros = arduinoDAO.getComandosDiaEspecifico(date);
+
+        Map<String, Integer> comandosPorMinuto = new HashMap<>();
+
+        for (Registro registro : registros) {
+            String horaMinuto = registro.getDataHora().split(" ")[1].substring(0, 5);
+
+            comandosPorMinuto.put(horaMinuto, comandosPorMinuto.getOrDefault(horaMinuto, 0) + 1);
+        }
+
+        List<String> sortedHoraMinuto = new ArrayList<>(comandosPorMinuto.keySet());
+        Collections.sort(sortedHoraMinuto);
+
+        for (String horaMinuto : sortedHoraMinuto) {
+            dataset.addValue(comandosPorMinuto.get(horaMinuto), "Total Detecções", horaMinuto);
         }
 
         return dataset;
