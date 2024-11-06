@@ -27,6 +27,7 @@ import org.jdatepicker.impl.JDatePanelImpl;
 import org.jdatepicker.impl.JDatePickerImpl;
 import org.jdatepicker.impl.SqlDateModel;
 import util.DateLabelFormatter;
+import util.NonEditableTableModel;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -66,7 +67,7 @@ public class InterfacePrincipal extends JFrame {
         topPanel.add(exportButton);
         add(topPanel, BorderLayout.NORTH);
 
-        tableModel = new DefaultTableModel(new Object[][]{}, new String[]{"Detecções", "Total", "Data/Hora"});
+        tableModel = new NonEditableTableModel(new Object[][]{}, new String[]{"Detecções", "Total", "Data/Hora"});
         table = new JTable(tableModel);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -241,24 +242,38 @@ public class InterfacePrincipal extends JFrame {
     private void deletarRegistros() {
         int selectedRow = table.getSelectedRow();
         if (selectedRow != -1) {
-            Object idObject = table.getValueAt(selectedRow, 0);
+            String selectedFilter = (String) filterComboBox.getSelectedItem();
 
-            if (idObject instanceof String) {
-                try {
-                    int id = Integer.parseInt((String) idObject);
-
-                    arduinoDAO.deleteCommand(id);
-
-                    tableModel.removeRow(selectedRow);
-                    JOptionPane.showMessageDialog(this, "Registro excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(this, "Erro ao excluir o registro. ID inválido.", "Erro", JOptionPane.ERROR_MESSAGE);
-                }
+            if ("Por dia específico".equals(selectedFilter)) {
+                java.sql.Date date = new java.sql.Date(((java.util.Date) datePicker.getModel().getValue()).getTime());
+                String comando = (String) tableModel.getValueAt(selectedRow, 0);
+                String dataHora = (String) tableModel.getValueAt(selectedRow, 1);
+                arduinoDAO.deleteRegistroPorDiaEspecifico(date, comando, dataHora);
+                tableModel.setRowCount(0);
+                configurarTabelaPorDiaEspecifico(date);
+            } else if ("Dia atual".equals(selectedFilter)) {
+                String minuto = (String) tableModel.getValueAt(selectedRow, 0);
+                arduinoDAO.deleteRegistroDiaAtual(minuto);
+                tableModel.setRowCount(0);
+                configurarTabelaDiaAtual();
+            } else if ("Semana atual".equals(selectedFilter)) {
+                String diaDaSemana = (String) tableModel.getValueAt(selectedRow, 0);
+                arduinoDAO.deleteRegistroSemanaAtual(diaDaSemana);
+                tableModel.setRowCount(0);
+                configurarTabelaSemanaAtual();
+            } else if ("Mês a mês".equals(selectedFilter)) {
+                String mes = (String) tableModel.getValueAt(selectedRow, 0);
+                arduinoDAO.deleteRegistroMesAMes(mes);
+                tableModel.setRowCount(0);
+                configurarTabelaMesAMes();
             }
+
+            JOptionPane.showMessageDialog(this, "Registro excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, selecione um registro para excluir.", "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     private void abrirTelaGrafico(String tipoGrafico, java.sql.Date dataSelecionada) {
         boolean hasData = false;

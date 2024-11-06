@@ -81,12 +81,5 @@ public class ConexaoArduino {
             }
         }).start();
     }
-
-    public void pararLeitura() {
-        running = false;
-        if (comPort != null && comPort.isOpen()) {
-            comPort.closePort();
-        }
-    }
 }
 

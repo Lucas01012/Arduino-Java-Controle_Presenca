@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -31,39 +32,86 @@ public class ArduinoDAO {
         }
     }
 
-    public void deleteCommand(int id) {
-        try (Connection connection = ConnectionFactory.getConnection()) {
-            String sql = "DELETE FROM comandos WHERE id = ?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setInt(1, id);
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    public void deleteRegistroPorDiaEspecifico(java.sql.Date date, String comando, String dataHora) {
+        String sql = "DELETE FROM comandos WHERE DATE(data_hora) = ? AND comando = ? AND data_hora = ?";
+        try (Connection connection = ConnectionFactory.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
-
-    public List<Registro> getAllRecords() {
-        List<Registro> registros = new ArrayList<>();
-
-        try (Connection connection = ConnectionFactory.getConnection()) {
-            String sql = "SELECT * FROM comandos";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                ResultSet resultSet = statement.executeQuery();
-                while (resultSet.next()) {
-                    int id = resultSet.getInt("id");
-                    String comando = resultSet.getString("comando");
-                    String dataHora = resultSet.getString("data_hora");
-                    registros.add(new Registro(id, comando, dataHora));
-                }
-            }
+            statement.setDate(1, date);
+            statement.setString(2, comando);
+            statement.setString(3, dataHora);
+            statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return registros;
+    }
+    public void deleteRegistroDiaAtual(String minuto) {
+        String sql = "DELETE FROM comandos WHERE DATE(data_hora) = CURDATE() AND DATE_FORMAT(data_hora, '%H:%i') = ?";
+        try (Connection connection = ConnectionFactory.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, minuto);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteRegistroSemanaAtual(String diaDaSemana) {
+        int diaSemanaInt = getNumeroDia(diaDaSemana);
+        String sql = "DELETE FROM comandos WHERE WEEK(data_hora) = WEEK(CURDATE()) AND DAYOFWEEK(data_hora) = ?";
+        try (Connection connection = ConnectionFactory.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, diaSemanaInt);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private int getNumeroDia(String diaSemana) {
+        switch (diaSemana) {
+            case "Domingo": return 1;
+            case "Segunda": return 2;
+            case "Terca": return 3;
+            case "Quarta": return 4;
+            case "Quinta": return 5;
+            case "Sexta": return 6;
+            case "Sabado": return 7;
+            default: throw new IllegalArgumentException("Dia da semana inválido: " + diaSemana);
+        }
+    }
+
+    public void deleteRegistroMesAMes(String mes) {
+        int mesInt = getNumeroMes(mes);
+        String sql = "DELETE FROM comandos WHERE MONTH(data_hora) = ? AND data_hora >= NOW() - INTERVAL 12 MONTH";
+        try (Connection connection = ConnectionFactory.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, mesInt);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private int getNumeroMes(String mes) {
+        switch (mes) {
+            case "Janeiro": return 1;
+            case "Fevereiro": return 2;
+            case "Março": return 3;
+            case "Abril": return 4;
+            case "Maio": return 5;
+            case "Junho": return 6;
+            case "Julho": return 7;
+            case "Agosto": return 8;
+            case "Setembro": return 9;
+            case "Outubro": return 10;
+            case "Novembro": return 11;
+            case "Dezembro": return 12;
+            default: throw new IllegalArgumentException("Mês inválido: " + mes);
+        }
     }
 
     public List<ComandoPorDia> getComandosMes() {

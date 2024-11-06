@@ -33,18 +33,6 @@ public class GraficoDAO {
         return dataset;
     }
 
-    public Map<String, Integer> getTotalComandosPorDia() {
-        Map<String, Integer> totalPorDia = new HashMap<>();
-
-        List<Registro> registros = arduinoDAO.getAllRecords();
-
-        for (Registro registro : registros) {
-            String dia = registro.getDataHora().split(" ")[0];
-            totalPorDia.put(dia, totalPorDia.getOrDefault(dia, 0) + 1);
-        }
-
-        return totalPorDia;
-    }
 
     public DefaultCategoryDataset getTotalComandosMes() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
