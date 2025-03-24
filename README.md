@@ -1,5 +1,5 @@
-Sistema de Controle de Presença com Arduino e Java
-📌 Sobre o Projeto
+Sistema de Controle de Presença com Arduino e Java📌 
+Sobre o Projeto
 Este projeto integra Arduino e Java para criar um sistema de controle de presença. O Arduino detecta movimentos e emite sinais sonoros quando alguém se aproxima. O Java recebe esses sinais, registra os eventos com data e horário em um banco de dados e permite a análise por meio de filtros e geração de gráficos.
 
 🛠️ Tecnologias Utilizadas
