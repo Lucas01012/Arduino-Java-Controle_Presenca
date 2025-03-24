@@ -122,15 +122,6 @@ Execute o projeto a partir da classe Main.java.
 
 Acesse a interface para visualizar os registros, aplicar filtros e gerar gráficos.
 
-🔄 Melhorias Futuras
-📡 Integração com um sistema web para monitoramento remoto
-
-📲 Notificações via Telegram ou e-mail para alertas
-
-📊 Dashboard mais interativo
-
-🔒 Implementação de autenticação de usuários
-
 📌 Autor
 Desenvolvido por Lucas Oliveira Silva
 
